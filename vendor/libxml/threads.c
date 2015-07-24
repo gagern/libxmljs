@@ -915,7 +915,8 @@ xmlCleanupThreads(void)
 #ifdef HAVE_PTHREAD_H
     if ((libxml_is_threaded)  && (pthread_key_delete != NULL))
         pthread_key_delete(globalkey);
-    once_control = PTHREAD_ONCE_INIT;
+    pthread_once_t once = PTHREAD_ONCE_INIT;
+    once_control = once;
 #elif defined(HAVE_WIN32_THREADS) && !defined(HAVE_COMPILER_TLS) && (!defined(LIBXML_STATIC) || defined(LIBXML_STATIC_FOR_DLL))
     if (globalkey != TLS_OUT_OF_INDEXES) {
         xmlGlobalStateCleanupHelperParams *p;

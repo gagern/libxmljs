@@ -60,6 +60,7 @@
           'defines': [
             'HAVE_LIBPTHREAD',
             'HAVE_PTHREAD_H',
+            '_REENTRANT'
           ],
         }],
       ]
