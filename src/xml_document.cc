@@ -235,7 +235,7 @@ NAN_METHOD(XmlDocument::ToString)
     if (xmlBufferLength(buf) > 0)
         ret = Nan::New<v8::String>((char*)xmlBufferContent(buf), xmlBufferLength(buf)).ToLocalChecked();
     xmlBufferFree(buf);
-    
+
     return info.GetReturnValue().Set(ret);
 }
 
@@ -317,7 +317,7 @@ xmlParserOption getParserOptions(v8::Local<v8::Object> props) {
     ret |= getParserOption(props, "cdata", XML_PARSE_NOCDATA, false);       // 16384: merge CDATA as text nodes
 
     ret |= getParserOption(props, "noxincnode", XML_PARSE_NOXINCNODE);      // 32768: do not generate XINCLUDE START/END nodes
-    ret |= getParserOption(props, "xinclude", XML_PARSE_NOXINCNODE, false); // 32768: do not generate XINCLUDE START/END nodes
+    ret |= getParserOption(props, "xincnode", XML_PARSE_NOXINCNODE, false); // 32768: do not generate XINCLUDE START/END nodes
 
     ret |= getParserOption(props, "compact", XML_PARSE_COMPACT);            // 65536: compact small text nodes; no modification of the tree allowed afterwards (will possibly crash if you try to modify the tree)
     /*ret |= getParserOption(props, "compact", HTML_PARSE_COMPACT , false);   // 65536: compact small text nodes*/
