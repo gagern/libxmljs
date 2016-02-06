@@ -341,6 +341,7 @@ xmlParserOption getParserOptions(v8::Local<v8::Object> props) {
 NAN_METHOD(XmlDocument::FromHtml)
 {
     Nan::HandleScope scope;
+    XmlSyntaxErrorsSync errors; // RAII sentinel
 
     v8::Local<v8::Object> options = info[1]->ToObject();
     v8::Local<v8::Value>  baseUrlOpt  = options->Get(
@@ -366,9 +367,7 @@ NAN_METHOD(XmlDocument::FromHtml)
         encoding = NULL;
     }
 
-    XmlSyntaxErrorsSync errors; // RAII sentinel
-
-    int opts = (int)getParserOptions(options);
+    int opts = (int) getParserOptions(options);
     if (excludeImpliedElementsOpt->ToBoolean()->Value())
         opts |= HTML_PARSE_NOIMPLIED | HTML_PARSE_NODEFDTD;
 
@@ -400,24 +399,49 @@ NAN_METHOD(XmlDocument::FromHtml)
     return info.GetReturnValue().Set(doc_handle);
 }
 
+// FIXME: this method is almost identical to FromHtml above.
+// The two should be refactored to use a common function for most
+// of the work
 NAN_METHOD(XmlDocument::FromXml)
 {
     Nan::HandleScope scope;
     XmlSyntaxErrorsSync errors; // RAII sentinel
 
-    xmlParserOption opts = getParserOptions(info[1]->ToObject());
+    v8::Local<v8::Object> options = info[1]->ToObject();
+    v8::Local<v8::Value>  baseUrlOpt  = options->Get(
+        Nan::New<v8::String>("baseUrl").ToLocalChecked());
+    v8::Local<v8::Value>  encodingOpt = options->Get(
+        Nan::New<v8::String>("encoding").ToLocalChecked());
+    v8::Local<v8::Value> excludeImpliedElementsOpt = options->Get(
+        Nan::New<v8::String>("excludeImpliedElements").ToLocalChecked());
 
+    // the base URL that will be used for this document
+    v8::String::Utf8Value baseUrl_(baseUrlOpt->ToString());
+    const char * baseUrl = *baseUrl_;
+    if (!baseUrlOpt->IsString()) {
+        baseUrl = NULL;
+    }
+
+    // the encoding to be used for this document
+    // (leave NULL for libxml to autodetect)
+    v8::String::Utf8Value encoding_(encodingOpt->ToString());
+    const char * encoding = *encoding_;
+    if (!encodingOpt->IsString()) {
+        encoding = NULL;
+    }
+
+    int opts = (int) getParserOptions(options);
     xmlDocPtr doc;
     if (!node::Buffer::HasInstance(info[0])) {
       // Parse a string
       v8::String::Utf8Value str(info[0]->ToString());
-      doc = xmlReadMemory(*str, str.length(), NULL, "UTF-8", opts);
+      doc = xmlReadMemory(*str, str.length(), baseUrl, "UTF-8", opts);
     }
     else {
       // Parse a buffer
       v8::Local<v8::Object> buf = info[0]->ToObject();
       doc = xmlReadMemory(node::Buffer::Data(buf), node::Buffer::Length(buf),
-                          NULL, NULL, opts);
+                          baseUrl, encoding, opts);
     }
 
     if (!doc) {
@@ -429,7 +453,8 @@ NAN_METHOD(XmlDocument::FromXml)
     }
 
     v8::Local<v8::Object> doc_handle = XmlDocument::New(doc);
-    Nan::Set(doc_handle, Nan::New<v8::String>("errors").ToLocalChecked(), errors.ToArray());
+    Nan::Set(doc_handle, Nan::New<v8::String>("errors").ToLocalChecked(),
+        errors.ToArray());
 
     xmlNode* root_node = xmlDocGetRootElement(doc);
     if (root_node == NULL) {
