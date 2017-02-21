@@ -341,6 +341,7 @@ xmlParserOption getParserOptions(v8::Local<v8::Object> props) {
 NAN_METHOD(XmlDocument::FromHtml)
 {
     Nan::HandleScope scope;
+    XmlSyntaxErrorsSync errors; // RAII sentinel
 
     v8::Local<v8::Object> options = info[1]->ToObject();
     v8::Local<v8::Value>  baseUrlOpt  = options->Get(
@@ -366,9 +367,7 @@ NAN_METHOD(XmlDocument::FromHtml)
         encoding = NULL;
     }
 
-    XmlSyntaxErrorsSync errors; // RAII sentinel
-
-    int opts = (int)getParserOptions(options);
+    int opts = (int) getParserOptions(options);
     if (excludeImpliedElementsOpt->ToBoolean()->Value())
         opts |= HTML_PARSE_NOIMPLIED | HTML_PARSE_NODEFDTD;
 
@@ -454,7 +453,8 @@ NAN_METHOD(XmlDocument::FromXml)
     }
 
     v8::Local<v8::Object> doc_handle = XmlDocument::New(doc);
-    Nan::Set(doc_handle, Nan::New<v8::String>("errors").ToLocalChecked(), errors.ToArray());
+    Nan::Set(doc_handle, Nan::New<v8::String>("errors").ToLocalChecked(),
+        errors.ToArray());
 
     xmlNode* root_node = xmlDocGetRootElement(doc);
     if (root_node == NULL) {
