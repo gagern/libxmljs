@@ -250,7 +250,7 @@ XmlDocument::New(xmlDoc* doc)
         return scope.Escape(static_cast<XmlDocument*>(doc->_private)->handle());
     }
 
-    v8::Local<v8::Object> obj = Nan::New(constructor_template)->GetFunction()->NewInstance();
+    v8::Local<v8::Object> obj = Nan::NewInstance(Nan::New(constructor_template)->GetFunction()).ToLocalChecked();
 
     XmlDocument* document = Nan::ObjectWrap::Unwrap<XmlDocument>(obj);
 
@@ -413,8 +413,6 @@ NAN_METHOD(XmlDocument::FromXml)
         Nan::New<v8::String>("baseUrl").ToLocalChecked());
     v8::Local<v8::Value>  encodingOpt = options->Get(
         Nan::New<v8::String>("encoding").ToLocalChecked());
-    v8::Local<v8::Value> excludeImpliedElementsOpt = options->Get(
-        Nan::New<v8::String>("excludeImpliedElements").ToLocalChecked());
 
     // the base URL that will be used for this document
     v8::String::Utf8Value baseUrl_(baseUrlOpt->ToString());

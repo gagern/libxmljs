@@ -10,6 +10,10 @@
         'vendor/libxml/include',
         "<!(node -e \"require('nan')\")"
       ],
+      'cflags': [ '-Wall' ],
+      'xcode_settings': {
+        'OTHER_CFLAGS': [ '-Wall' ]
+      },
       'sources': [
         'src/libxmljs.cc',
         'src/xml_attribute.cc',
@@ -70,6 +74,7 @@
           # node-gyp 2.x doesn't add this anymore
           # https://github.com/TooTallNate/node-gyp/pull/612
           'xcode_settings': {
+            'CLANG_CXX_LANGUAGE_STANDARD': 'c++11',
             'OTHER_LDFLAGS': [
               '-undefined dynamic_lookup'
             ],

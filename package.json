@@ -4,19 +4,28 @@
   "contributors": [
     "Jeff Smick",
     "Roman Shtylman",
-    "Martin von Gagern <Martin.vGagern@gmx.net>"
+    "Martin von Gagern <Martin.vGagern@gmx.net>",
+    "Justin Murray <justin@murrayju.com>"
   ],
+  "binary": {
+    "module_name": "xmljs",
+    "module_path": "./build/Release/",
+    "host": "https://github.com",
+    "remote_path": "./libxmljs/libxmljs/releases/download/v{version}/",
+    "package_name": "{node_abi}-{platform}-{arch}.tar.gz"
+  },
   "description": "multi-threaded libxml bindings for v8 javascript engine",
-  "version": "0.18.0",
+  "version": "0.18.7",
   "scripts": {
+    "install": "node-pre-gyp install --fallback-to-build --loglevel http",
     "test": "node --expose_gc node_modules/nodeunit/bin/nodeunit test"
   },
   "repository": {
     "type": "git",
-    "url": "http://github.com/gagern/libxmljs.git"
+    "url": "http://github.com/murrayju/libxmljs-mt.git"
   },
   "bugs": {
-    "url": "http://github.com/gagern/libxmljs/issues"
+    "url": "http://github.com/murrayju/libxmljs-mt/issues"
   },
   "main": "./index",
   "license": "MIT",
@@ -24,8 +33,9 @@
     "node": ">=0.8.0"
   },
   "dependencies": {
+    "node-pre-gyp": "~0.6.32",
     "bindings": "^1.2.1",
-    "nan": "^2.3.2"
+    "nan": "~2.5.0"
   },
   "devDependencies": {
     "nodeunit": "^0.9.0"
