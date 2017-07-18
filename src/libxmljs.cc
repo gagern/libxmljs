@@ -59,18 +59,25 @@ void adjustMem(ssize_t diff)
     // our cleanup routines for libxml will be called (freeing memory)
     // but v8 is already offline and does not need to be informed
     // trying to adjust after shutdown will result in a fatal error
-#if (NODE_MODULE_VERSION > 0x000B)
+#if (NODE_MODULE_VERSION > 14)
+    if (v8::Isolate::GetCurrent() == 0 ||
+        v8::Isolate::GetCurrent()->IsDead())
+    {
+        return;
+    }
+#elif (NODE_MODULE_VERSION > 0x000B)
     if (v8::Isolate::GetCurrent() == 0)
     {
         assert(diff <= 0);
         return;
     }
-#endif
+#else
     if (v8::V8::IsDead())
     {
         assert(diff <= 0);
         return;
     }
+#endif
     actuallyAdjustMem(diff);
 }
 
