@@ -8,6 +8,7 @@ var Document = require('./lib/document');
 
 /// parse an xml string and return a Document
 module.exports.parseXml = Document.fromXml;
+module.exports.fromXmlAsync = Document.fromXmlAsync;
 
 /// parse an html string and return a Document
 module.exports.parseHtml = Document.fromHtml;
