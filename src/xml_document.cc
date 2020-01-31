@@ -38,7 +38,7 @@ NAN_METHOD(XmlDocument::Encoding)
     }
 
     // set the encoding otherwise
-    v8::String::Utf8Value encoding(info[0]->ToString());
+    Nan::Utf8String encoding(Nan::To<v8::String>(info[0]).ToLocalChecked());
     if(document->xml_obj->encoding != NULL) {
         xmlFree((xmlChar*)document->xml_obj->encoding);
     }
@@ -82,7 +82,7 @@ NAN_METHOD(XmlDocument::Root)
 
     // set the element as the root element for the document
     // allows for proper retrieval of root later
-    XmlElement* element = Nan::ObjectWrap::Unwrap<XmlElement>(info[0]->ToObject());
+    XmlElement* element = Nan::ObjectWrap::Unwrap<XmlElement>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
     assert(element);
     xmlDocSetRootElement(document->xml_obj, element->xml_obj);
     element->ref_wrapped_ancestor();
@@ -140,7 +140,7 @@ NAN_METHOD(XmlDocument::SetDtd)
     XmlDocument* document = Nan::ObjectWrap::Unwrap<XmlDocument>(info.Holder());
     assert(document);
 
-    v8::String::Utf8Value name(info[0]);
+    Nan::Utf8String name(info[0]);
 
     v8::Local<v8::Value> extIdOpt;
     v8::Local<v8::Value> sysIdOpt;
@@ -151,8 +151,8 @@ NAN_METHOD(XmlDocument::SetDtd)
       sysIdOpt = info[2];
     }
 
-    v8::String::Utf8Value extIdRaw(extIdOpt);
-    v8::String::Utf8Value sysIdRaw(sysIdOpt);
+    Nan::Utf8String extIdRaw(extIdOpt);
+    Nan::Utf8String sysIdRaw(sysIdOpt);
 
     //must be set to null in order for xmlCreateIntSubset to ignore them
     const char* extId = (extIdRaw.length()) ? *extIdRaw : NULL;
@@ -180,11 +180,11 @@ NAN_METHOD(XmlDocument::ToString)
 
     if (info.Length() > 0) {
     if (info[0]->IsBoolean()) {
-        if (info[0]->ToBoolean()->BooleanValue() == true) {
+       if (Nan::To<v8::Boolean>(info[0]).ToLocalChecked()->Value() == true) {
             options |= XML_SAVE_FORMAT;
         }
     } else if (info[0]->IsObject()) {
-        v8::Local<v8::Object> obj = info[0]->ToObject();
+        v8::Local<v8::Object> obj = Nan::To<v8::Object>(info[0]).ToLocalChecked();
 
         // drop the xml declaration
         if (obj->Get(Nan::New<v8::String>("declaration").ToLocalChecked())->IsFalse()) {
@@ -206,12 +206,12 @@ NAN_METHOD(XmlDocument::ToString)
             options |= XML_SAVE_WSNONSIG;
         }
 
-        v8::Local<v8::Value> type = obj->Get(Nan::New<v8::String>("type").ToLocalChecked());
-        if (type->Equals(Nan::New<v8::String>("XML").ToLocalChecked()) ||
-            type->Equals(Nan::New<v8::String>("xml").ToLocalChecked())) {
+        v8::Local<v8::Value> type = Nan::Get(obj, Nan::New<v8::String>("type").ToLocalChecked()).ToLocalChecked();
+          if (Nan::Equals(type, Nan::New<v8::String>("XML").ToLocalChecked()).ToChecked() ||
+              Nan::Equals(type, Nan::New<v8::String>("xml").ToLocalChecked()).ToChecked()) {
             options |= XML_SAVE_AS_XML;    // force XML serialization on HTML doc
-        } else if (type->Equals(Nan::New<v8::String>("HTML").ToLocalChecked()) ||
-                 type->Equals(Nan::New<v8::String>("html").ToLocalChecked())) {
+        } else if (Nan::Equals(type, Nan::New<v8::String>("HTML").ToLocalChecked()).ToChecked() ||
+                     Nan::Equals(type, Nan::New<v8::String>("html").ToLocalChecked()).ToChecked()) {
             options |= XML_SAVE_AS_HTML;   // force HTML serialization on XML doc
             // if the document is XML and we want formatted HTML output
             // we must use the XHTML serializer because the default HTML
@@ -219,9 +219,8 @@ NAN_METHOD(XmlDocument::ToString)
             if ((options & XML_SAVE_FORMAT) && (options & XML_SAVE_XHTML) == false) {
               options |= XML_SAVE_XHTML;
             }
-        } else if (type->Equals(Nan::New<v8::String>("XHTML").ToLocalChecked()) ||
-                 type->Equals(Nan::New<v8::String>("xhtml").ToLocalChecked())) {
-                options |= XML_SAVE_XHTML;    // force XHTML serialization
+        } else if (Nan::Equals(type, Nan::New<v8::String>("XHTML").ToLocalChecked()).ToChecked() ||
+                 Nan::Equals(type, Nan::New<v8::String>("xhtml").ToLocalChecked()).ToChecked()) {options |= XML_SAVE_XHTML;    // force XHTML serialization
             }
         }
     }
@@ -250,7 +249,7 @@ XmlDocument::New(xmlDoc* doc)
         return scope.Escape(static_cast<XmlDocument*>(doc->_private)->handle());
     }
 
-    v8::Local<v8::Object> obj = Nan::NewInstance(Nan::New(constructor_template)->GetFunction()).ToLocalChecked();
+    v8::Local<v8::Object> obj = Nan::NewInstance(Nan::GetFunction(Nan::New(constructor_template)).ToLocalChecked()).ToLocalChecked();
 
     XmlDocument* document = Nan::ObjectWrap::Unwrap<XmlDocument>(obj);
 
@@ -268,8 +267,8 @@ XmlDocument::New(xmlDoc* doc)
 
 int getParserOption(v8::Local<v8::Object> props, const char *key, int value, bool defaultValue = true) {
     Nan::HandleScope scope;
-    v8::Local<v8::Value> prop = props->Get(Nan::New<v8::String>(key).ToLocalChecked());
-    return !prop->IsUndefined() && prop->ToBoolean()->BooleanValue() == defaultValue ? value : 0;
+    v8::Local<v8::Value> prop = Nan::Get(props, Nan::New<v8::String>(key).ToLocalChecked()).ToLocalChecked();
+    return !prop->IsUndefined() && Nan::To<v8::Boolean>(prop).ToLocalChecked()->Value() == defaultValue ? value : 0;
 }
 
 xmlParserOption getParserOptions(v8::Local<v8::Object> props) {
@@ -342,16 +341,16 @@ NAN_METHOD(XmlDocument::FromHtml)
 {
     Nan::HandleScope scope;
 
-    v8::Local<v8::Object> options = info[1]->ToObject();
-    v8::Local<v8::Value>  baseUrlOpt  = options->Get(
-        Nan::New<v8::String>("baseUrl").ToLocalChecked());
-    v8::Local<v8::Value>  encodingOpt = options->Get(
-        Nan::New<v8::String>("encoding").ToLocalChecked());
-    v8::Local<v8::Value> excludeImpliedElementsOpt = options->Get(
-        Nan::New<v8::String>("excludeImpliedElements").ToLocalChecked());
+    v8::Local<v8::Object> options = Nan::To<v8::Object>(info[1]).ToLocalChecked();
+    v8::Local<v8::Value>  baseUrlOpt  = Nan::Get(options,
+        Nan::New<v8::String>("baseUrl").ToLocalChecked()).ToLocalChecked();
+    v8::Local<v8::Value>  encodingOpt = Nan::Get(options,
+        Nan::New<v8::String>("encoding").ToLocalChecked()).ToLocalChecked();
+    v8::Local<v8::Value> excludeImpliedElementsOpt = Nan::Get(options,
+        Nan::New<v8::String>("excludeImpliedElements").ToLocalChecked()).ToLocalChecked();
 
     // the base URL that will be used for this HTML parsed document
-    v8::String::Utf8Value baseUrl_(baseUrlOpt->ToString());
+    Nan::Utf8String baseUrl_(Nan::To<v8::String>(baseUrlOpt).ToLocalChecked());
     const char * baseUrl = *baseUrl_;
     if (!baseUrlOpt->IsString()) {
         baseUrl = NULL;
@@ -359,7 +358,7 @@ NAN_METHOD(XmlDocument::FromHtml)
 
     // the encoding to be used for this document
     // (leave NULL for libxml to autodetect)
-    v8::String::Utf8Value encoding_(encodingOpt->ToString());
+    Nan::Utf8String encoding_(Nan::To<v8::String>(encodingOpt).ToLocalChecked());
     const char * encoding = *encoding_;
 
     if (!encodingOpt->IsString()) {
@@ -369,18 +368,18 @@ NAN_METHOD(XmlDocument::FromHtml)
     XmlSyntaxErrorsSync errors; // RAII sentinel
 
     int opts = (int)getParserOptions(options);
-    if (excludeImpliedElementsOpt->ToBoolean()->Value())
+   if (Nan::To<v8::Boolean>(excludeImpliedElementsOpt).ToLocalChecked()->Value())
         opts |= HTML_PARSE_NOIMPLIED | HTML_PARSE_NODEFDTD;
 
     htmlDocPtr doc;
     if (!node::Buffer::HasInstance(info[0])) {
         // Parse a string
-        v8::String::Utf8Value str(info[0]->ToString());
+        Nan::Utf8String str(Nan::To<v8::String>(info[0]).ToLocalChecked());
         doc = htmlReadMemory(*str, str.length(), baseUrl, encoding, opts);
     }
     else {
         // Parse a buffer
-        v8::Local<v8::Object> buf = info[0]->ToObject();
+       v8::Local<v8::Object> buf = Nan::To<v8::Object>(info[0]).ToLocalChecked();
         doc = htmlReadMemory(node::Buffer::Data(buf), node::Buffer::Length(buf),
                             baseUrl, encoding, opts);
     }
@@ -408,14 +407,14 @@ NAN_METHOD(XmlDocument::FromXml)
     Nan::HandleScope scope;
     XmlSyntaxErrorsSync errors; // RAII sentinel
 
-    v8::Local<v8::Object> options = info[1]->ToObject();
+    v8::Local<v8::Object> options = Nan::To<v8::Object>(info[1]).ToLocalChecked();
     v8::Local<v8::Value>  baseUrlOpt  = options->Get(
         Nan::New<v8::String>("baseUrl").ToLocalChecked());
     v8::Local<v8::Value>  encodingOpt = options->Get(
         Nan::New<v8::String>("encoding").ToLocalChecked());
 
     // the base URL that will be used for this document
-    v8::String::Utf8Value baseUrl_(baseUrlOpt->ToString());
+   Nan::Utf8String baseUrl_(Nan::To<v8::String>(baseUrlOpt).ToLocalChecked());
     const char * baseUrl = *baseUrl_;
     if (!baseUrlOpt->IsString()) {
         baseUrl = NULL;
@@ -423,7 +422,7 @@ NAN_METHOD(XmlDocument::FromXml)
 
     // the encoding to be used for this document
     // (leave NULL for libxml to autodetect)
-    v8::String::Utf8Value encoding_(encodingOpt->ToString());
+    Nan::Utf8String encoding_(Nan::To<v8::String>(encodingOpt).ToLocalChecked());
     const char * encoding = *encoding_;
     if (!encodingOpt->IsString()) {
         encoding = NULL;
@@ -433,12 +432,12 @@ NAN_METHOD(XmlDocument::FromXml)
     xmlDocPtr doc;
     if (!node::Buffer::HasInstance(info[0])) {
       // Parse a string
-      v8::String::Utf8Value str(info[0]->ToString());
+      Nan::Utf8String str(Nan::To<v8::String>(info[0]).ToLocalChecked());
       doc = xmlReadMemory(*str, str.length(), baseUrl, "UTF-8", opts);
     }
     else {
       // Parse a buffer
-      v8::Local<v8::Object> buf = info[0]->ToObject();
+     v8::Local<v8::Object> buf = Nan::To<v8::Object>(info[0]).ToLocalChecked();
       doc = xmlReadMemory(node::Buffer::Data(buf), node::Buffer::Length(buf),
                           baseUrl, encoding, opts);
     }
@@ -546,8 +545,8 @@ void FromXmlWorker::WorkComplete()
 
 NAN_METHOD(XmlDocument::FromXmlAsync) {
     Nan::HandleScope scope;
-    v8::Local<v8::Object> buf = info[0]->ToObject();
-    v8::Local<v8::Object> opt = info[1]->ToObject();
+    v8::Local<v8::Object> buf = Nan::To<v8::Object>(info[0]).ToLocalChecked();
+    v8::Local<v8::Object> opt =  Nan::To<v8::Object>(info[1]).ToLocalChecked();
     Nan::Callback *callback = new Nan::Callback(info[2].As<v8::Function>());
     Nan::AsyncQueueWorker(new FromXmlWorker(callback, buf, opt));
 }
@@ -558,7 +557,7 @@ NAN_METHOD(XmlDocument::Validate)
 
     XmlSyntaxErrorsSync errors;
     XmlDocument* document = Nan::ObjectWrap::Unwrap<XmlDocument>(info.Holder());
-    XmlDocument* documentSchema = Nan::ObjectWrap::Unwrap<XmlDocument>(info[0]->ToObject());
+    XmlDocument* documentSchema = Nan::ObjectWrap::Unwrap<XmlDocument>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
 
     xmlSchemaParserCtxtPtr parser_ctxt = xmlSchemaNewDocParserCtxt(documentSchema->xml_obj);
     if (parser_ctxt == NULL) {
@@ -591,7 +590,7 @@ NAN_METHOD(XmlDocument::RngValidate)
     XmlSyntaxErrorsSync errors;
 
     XmlDocument* document = Nan::ObjectWrap::Unwrap<XmlDocument>(info.Holder());
-    XmlDocument* documentSchema = Nan::ObjectWrap::Unwrap<XmlDocument>(info[0]->ToObject());
+    XmlDocument* documentSchema = Nan::ObjectWrap::Unwrap<XmlDocument>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
 
     xmlRelaxNGParserCtxtPtr parser_ctxt = xmlRelaxNGNewDocParserCtxt(documentSchema->xml_obj);
     if (parser_ctxt == NULL) {
@@ -625,7 +624,7 @@ NAN_METHOD(XmlDocument::New)
 {
     Nan::HandleScope scope;
 
-    v8::String::Utf8Value version(info[0]->ToString());
+    Nan::Utf8String version(Nan::To<v8::String>(info[0]).ToLocalChecked());
     xmlDoc* doc = xmlNewDoc((const xmlChar*)(*version));
 
     XmlDocument* document = new XmlDocument(doc);
@@ -647,7 +646,7 @@ XmlDocument::~XmlDocument()
 }
 
 void
-XmlDocument::Initialize(v8::Handle<v8::Object> target)
+XmlDocument::Initialize(v8::Local<v8::Object> target)
 {
     Nan::HandleScope scope;
 
@@ -694,7 +693,7 @@ XmlDocument::Initialize(v8::Handle<v8::Object> target)
     Nan::SetMethod(target, "fromHtml", XmlDocument::FromHtml);
 
     // used to create new document handles
-    Nan::Set(target, Nan::New<v8::String>("Document").ToLocalChecked(), tmpl->GetFunction());
+   Nan::Set(target, Nan::New<v8::String>("Document").ToLocalChecked(), Nan::GetFunction(tmpl).ToLocalChecked());
 
     XmlNode::Initialize(target);
     XmlNamespace::Initialize(target);
